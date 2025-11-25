@@ -23,7 +23,7 @@ tcpSerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpSerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 tcpSerSock.settimeout(1)    # so CTRL-C works and accept doesn't block forever
 
-tcpSerSock.bind(ADDR)
+tcpSerSock.bind(ADDR) # this makes this file a server file
 tcpSerSock.listen(5)
 
 scale = 0.7
