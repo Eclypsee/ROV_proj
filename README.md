@@ -1,5 +1,5 @@
 • Use Raspberry Pi 3 with Buster OS  
-• In raspi-config → Interfacing Options → enable Camera 
+• In raspi-config → Interfacing Options → enable Camera, enable I2C
 • In raspi-config → enable Auto Login
 • Make sure hostname is raspberrypi
 
