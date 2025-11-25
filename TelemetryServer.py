@@ -1,5 +1,6 @@
 import socket
 import Adafruit_ADS1x15
+import time
 
 adc = Adafruit_ADS1x15.ADS1115()
 GAIN = 1
@@ -10,12 +11,10 @@ ADDR = (HOST, PORT)
 
 tcpSerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcpSerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-tcpSerSock.settimeout(1.0)  # avoid blocking forever
-
 tcpSerSock.bind(ADDR)
-tcpSerSock.listen(5)
+tcpSerSock.listen(1)
 
-print("Waiting for connection...")
+print("Telemetry server waiting for connection...")
 
 def read_voltage():
     try:
@@ -27,24 +26,29 @@ def read_voltage():
 
 try:
     while True:
-        # accept a connection (non-blocking)
-        try:
-            tcpDataSock, addr = tcpSerSock.accept()
-        except socket.timeout:
-            continue
-
-        print("Connected from:", addr)
-
-        volts = read_voltage()
-        message = f"1,{volts}\r\n"
+        client, addr = tcpSerSock.accept()
+        client.setblocking(False)
+        print("Telemetry connected:", addr)
 
         try:
-            tcpDataSock.send(message.encode("utf-8"))
-        except OSError:
-            print("Send failed")
-
-        tcpDataSock.close()
+            while True:
+                volts = read_voltage()
+                msg = f"1,{volts}\n".encode()
+                try:
+                    client.send(msg)
+                except BlockingIOError:
+                    # TCP buffer full → drop telemetry packet
+                    pass
+                except (BrokenPipeError, ConnectionResetError, OSError):
+                    # Client disconnected → break inner loop
+                    print("Telemetry connection lost")
+                    break
+                time.sleep(1)     # 1 second telemetry(its just a battery)
+        except Exception as e:
+            print("Exception in main loop: ", e)
+            
+        print("Telemetry client disconnected")
+        client.close()
 
 finally:
     tcpSerSock.close()
-    print("Server closed.")
