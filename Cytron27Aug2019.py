@@ -29,32 +29,32 @@ lv=GPIO.PWM(PwmLV,100)
 def RV(w):
     if(w<=0):
         GPIO.output(DirRV,GPIO.HIGH)
-        rv.start(abs(w))
+        rv.ChangeDutyCycle(abs(w))
     if(w>0):
         GPIO.output(DirRV,GPIO.LOW)
-        rv.start(abs(w))
+        rv.ChangeDutyCycle(abs(w))
 
 def R(x):
     if(x<=0):
         GPIO.output(DirR,GPIO.HIGH)
-        r.start(abs(x))
+        r.ChangeDutyCycle(abs(x))
     if(x>0):
         GPIO.output(DirR,GPIO.LOW)
-        r.start(abs(x))
+        r.ChangeDutyCycle(abs(x))
 
 def L(y):
     if(y>=0):
         GPIO.output(DirL,GPIO.HIGH)
-        l.start(abs(y))
+        l.ChangeDutyCycle(abs(y))
     if(y<0):
         GPIO.output(DirL,GPIO.LOW)
-        l.start(abs(y))
+        l.ChangeDutyCycle(abs(y))
 def LV(z):
     if(z<=0):
         GPIO.output(DirLV,GPIO.HIGH)
-        lv.start(abs(z))
+        lv.ChangeDutyCycle(abs(z))
     if(z>0):
         GPIO.output(DirLV,GPIO.LOW)
-        lv.start(abs(z))
+        lv.ChangeDutyCycle(abs(z))
         
         
