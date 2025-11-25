@@ -7,6 +7,9 @@ Run on the Pi:
     sudo systemctl enable pigpiod
     sudo systemctl start pigpiod
 
+sudo pip3 install Adafruit-GPIO
+sudo pip3 install Adafruit-ADS1x15
+
 • Make camserver, controlserver, telemetryserver executable (chmod +x)  
 • Add all three to crontab so they start on boot
 • After finishing code changes, set filesystem to Read-Only in raspi-config (you can re-enable write mode later)
