@@ -26,6 +26,12 @@ GPIO.setup(DirLV,GPIO.OUT)
 GPIO.setup(PwmLV,GPIO.OUT)
 lv=GPIO.PWM(PwmLV,100)
 
+rv.start(0)
+r.start(0)
+l.start(0)
+lv.start(0)
+
+
 def RV(w):
     if(w<=0):
         GPIO.output(DirRV,GPIO.HIGH)
