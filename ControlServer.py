@@ -105,6 +105,7 @@ try:
         c.LV(k * scale)
         c.RV(k * scale)
         last_cmd_time = time.time()
+        time.sleep(0.001)
 
 
 except KeyboardInterrupt:
