@@ -49,10 +49,10 @@ def R(x):
         r.ChangeDutyCycle(abs(x))
 
 def L(y):
-    if(y>=0):
+    if(y<=0):
         GPIO.output(DirL,GPIO.HIGH)
         l.ChangeDutyCycle(abs(y))
-    if(y<0):
+    if(y>0):
         GPIO.output(DirL,GPIO.LOW)
         l.ChangeDutyCycle(abs(y))
 def LV(z):
