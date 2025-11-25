@@ -1,58 +1,50 @@
-from socket import *
-import numpy as np
-import smbus
-import time
-#import py_qmc58831
-import py_qmc5883l as qmc
-import math
+import socket
 import Adafruit_ADS1x15
+
 adc = Adafruit_ADS1x15.ADS1115()
-GAIN = 1 #This sets the voltage range to 4.096V per 2**15
-#from mpu6050 import mpu6050
-#sensor = mpu6050(0x68)
-HOST=''
-PORT=52849
-BUFSIZE=1024
-ADDR=(HOST,PORT)
-tcpSerSock=socket(AF_INET,SOCK_STREAM)
+GAIN = 1
+
+HOST = ''
+PORT = 52849
+ADDR = (HOST, PORT)
+
+tcpSerSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tcpSerSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+tcpSerSock.settimeout(1.0)  # avoid blocking forever
+
 tcpSerSock.bind(ADDR)
 tcpSerSock.listen(5)
-#tcpSerSock.settimeout(0.5)
 
-RawVoltage = adc.read_adc(0,gain = GAIN)
-Voltage = round(100*RawVoltage*4.096/(2**15))/100
-Volts=str(Voltage)+'V'
-print(Volts)
+print("Waiting for connection...")
 
-print('Waiting for connection')
-print('...connected from:',ADDR)
-
-while True:
-
-    tcpDataSock,addr=tcpSerSock.accept()
-    print("accepted")
+def read_voltage():
     try:
-        sensor = qmc.QMC5883L()
-        sensor.calibration = [[  1.03194204e+00,  -5.83440263e-02,  -6.59472052e+03],
-                              [ -5.83440263e-02,   1.10656882e+00,   4.03742821e+02],
-                              [  0.00000000e+00,   0.00000000e+00,   1.00000000e+00]]
-        m=sensor.get_bearing()
-        
+        raw = adc.read_adc(0, gain=GAIN)
+        voltage = round(raw * 4.096 / (2**15), 2)
+        return f"{voltage}V"
     except:
-        m='none'
-    try:
-    #print(m)
-        RawVoltage = adc.read_adc(0,gain = GAIN)
-        Voltage = round(100*RawVoltage*4.096/(2**15))/100
-        Volts=str(Voltage)+'V'
-        print(Volts)
-    except:
-        Volts="NA"
-    
-    Message = str(m)+','+Volts+'\r\n'
-    #Message = str(math.degrees(math.atan2(y,x)))+'\r\n'
-    tcpDataSock.send(Message.encode('UTF-8'))
-    
+        return "NA"
 
-    
+try:
+    while True:
+        # accept a connection (non-blocking)
+        try:
+            tcpDataSock, addr = tcpSerSock.accept()
+        except socket.timeout:
+            continue
 
+        print("Connected from:", addr)
+
+        volts = read_voltage()
+        message = f"1,{volts}\r\n"
+
+        try:
+            tcpDataSock.send(message.encode("utf-8"))
+        except OSError:
+            print("Send failed")
+
+        tcpDataSock.close()
+
+finally:
+    tcpSerSock.close()
+    print("Server closed.")
