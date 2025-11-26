@@ -9,10 +9,7 @@ import numpy as np
 
 import requests
 # button 2 is x and button 1 is b
-FFMPEG_CMD = [
-    "./ffmpeg.exe", "-i", "tcp://raspberrypi:8000",
-    "-f", "rawvideo", "-pix_fmt", "rgb24", "-"
-]
+
 class TelemetryThread(QtCore.QThread):
     telemetry_received = QtCore.pyqtSignal(str)
 
@@ -68,27 +65,61 @@ class TelemetryThread(QtCore.QThread):
 class VideoThread(QtCore.QThread):
     frame_received = QtCore.pyqtSignal(QtGui.QImage)
 
+    def __init__(self, cmd):
+        super().__init__()
+        self.cmd = cmd
+
     def run(self):
         proc = subprocess.Popen(
-            FFMPEG_CMD, stdout=subprocess.PIPE
+            self.cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL
         )
+
         w, h = 1280, 720
         frame_size = w * h * 3
+        bytes_per_line = w * 3
+
+        stdout = proc.stdout
+        if stdout is None:
+            print("FFmpeg stdout is None")
+            return
 
         while True:
-            raw = proc.stdout.read(frame_size)
-            if len(raw) < frame_size:
+            raw = stdout.read(frame_size)
+            if not raw or len(raw) < frame_size:
                 break
 
             frame = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
-            img = QtGui.QImage(frame.data, w, h, QtGui.QImage.Format.Format_RGB888)
+
+            img = QtGui.QImage(
+                frame.data,
+                w,
+                h,
+                bytes_per_line,
+                QtGui.QImage.Format.Format_RGB888
+            )
+
             self.frame_received.emit(img)
+
+
+def build_ffmpeg_cmd(ip):
+    return [
+        "./ffmpeg.exe",
+        "-fflags", "nobuffer",
+        "-flags", "low_delay",
+        "-i", f"tcp://{ip}:8000",
+        "-vf", "format=rgb24",
+        "-f", "rawvideo",
+        "-pix_fmt", "rgb24",
+        "-"
+    ]
 
 
 class Controller(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-
+        
         # init joystick
         pygame.init()
         pygame.joystick.init()
@@ -107,6 +138,9 @@ class Controller(QtWidgets.QMainWindow):
             print("Hostname resolve failed:", e)
             self.target_addr = "192.168.1.50"   # optional fallback static IP
 
+
+        # Build FFmpeg command now that we know the IP
+        self.ffmpeg_cmd = build_ffmpeg_cmd(self.target_addr)
 
         # GUI
         self.label_video = QtWidgets.QLabel()
@@ -142,7 +176,7 @@ class Controller(QtWidgets.QMainWindow):
         self.dns_timer.start(5000)   # every 5 seconds
 
         # start video thread
-        self.vthread = VideoThread()
+        self.vthread = VideoThread(self.ffmpeg_cmd)
         self.vthread.frame_received.connect(self.update_frame)
         self.vthread.start()
 

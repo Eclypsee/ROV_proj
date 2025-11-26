@@ -80,13 +80,37 @@
 #         server.serve_forever()
 #     finally:
 #         camera.stop_recording()
-import picamera, socket
+import socket
+import time
+import picamera
 
 server = socket.socket()
+server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind(('', 8000))
 server.listen(1)
-conn = server.accept()[0].makefile('wb')
 
-with picamera.PiCamera(resolution='1280x720', framerate=30) as camera:
-    camera.start_recording(conn, format='h264', bitrate=2000000)
-    camera.wait_recording(999999)
+print("H264 Camera Server Started")
+
+while True:
+    print("Waiting for client...")
+    conn, addr = server.accept()
+    print("Client connected:", addr)
+
+    conn_file = conn.makefile('wb')
+
+    try:
+        with picamera.PiCamera(resolution=(1280,720), framerate=30) as camera:
+            camera.start_recording(conn_file, format='h264', bitrate=2000000)
+
+            while True:
+                camera.wait_recording(1)   # small sleep prevents freezing
+    except Exception as e:
+        print("Client disconnected:", e)
+    finally:
+        try:
+            camera.stop_recording()
+        except:
+            pass
+        conn_file.close()
+        conn.close()
+        time.sleep(0.5)
