@@ -103,14 +103,26 @@ while True:
             camera.start_recording(conn_file, format='h264', bitrate=2000000)
 
             while True:
-                camera.wait_recording(1)   # small sleep prevents freezing
+                camera.wait_recording(1)
+
     except Exception as e:
         print("Client disconnected:", e)
+
     finally:
+        # IMPORTANT: wrap closes in try/except so broken pipe cannot kill server
         try:
             camera.stop_recording()
         except:
             pass
-        conn_file.close()
-        conn.close()
-        time.sleep(0.5)
+
+        try:
+            conn_file.close()
+        except:
+            pass
+
+        try:
+            conn.close()
+        except:
+            pass
+
+        time.sleep(0.2)   # short pause before accepting next client

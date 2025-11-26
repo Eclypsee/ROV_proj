@@ -108,12 +108,19 @@ def build_ffmpeg_cmd(ip):
         "./ffmpeg.exe",
         "-fflags", "nobuffer",
         "-flags", "low_delay",
+
+        # input
         "-i", f"tcp://{ip}:8000",
-        "-vf", "format=rgb24",
-        "-f", "rawvideo",
+
+        # convert H264 → RGB
         "-pix_fmt", "rgb24",
-        "-"
+        "-vf", "format=rgb24",
+
+        # output raw frames
+        "-f", "rawvideo",
+        "-",
     ]
+
 
 
 class Controller(QtWidgets.QMainWindow):
