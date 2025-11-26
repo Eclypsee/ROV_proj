@@ -2,7 +2,19 @@ import socket
 import Adafruit_ADS1x15
 import time
 
-adc = Adafruit_ADS1x15.ADS1115()
+def get_adc():
+    while True:
+        try:
+            adc = Adafruit_ADS1x15.ADS1115()
+            adc.read_adc(0, gain=1)  # test read
+            print("ADC ready")
+            return adc
+        except Exception as e:
+            print("ADC not ready, retrying...")
+            time.sleep(1)
+
+adc = get_adc()
+
 GAIN = 1
 
 HOST = ''
