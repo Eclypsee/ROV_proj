@@ -1,13 +1,18 @@
 import pygame
 import time
 import socket
+import subprocess
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6 import QtCore, QtGui, QtWidgets
 from PyQt6.QtCore import Qt, pyqtSignal, QThread
+import numpy as np
 
 import requests
 # button 2 is x and button 1 is b
-
+FFMPEG_CMD = [
+    "./ffmpeg.exe", "-i", "tcp://raspberrypi:8000",
+    "-f", "rawvideo", "-pix_fmt", "rgb24", "-"
+]
 class TelemetryThread(QtCore.QThread):
     telemetry_received = QtCore.pyqtSignal(str)
 
@@ -36,31 +41,48 @@ class TelemetryThread(QtCore.QThread):
                 print("Telemetry reconnect:", e)
                 time.sleep(2)
 
+# class VideoThread(QtCore.QThread):
+#     frame_received = QtCore.pyqtSignal(QtGui.QImage)
+
+#     def run(self):
+#         while True:
+#             try:
+#                 r = requests.get("http://raspberrypi:8000/stream.mjpg", stream=True, timeout=5)
+#                 bytes_data = b""
+
+#                 for chunk in r.iter_content(chunk_size=16384):
+#                     bytes_data += chunk
+#                     a = bytes_data.find(b'\xff\xd8')
+#                     b = bytes_data.find(b'\xff\xd9')
+#                     if a != -1 and b != -1:
+#                         jpg = bytes_data[a:b+2]
+#                         bytes_data = bytes_data[b+2:]
+#                         img = QtGui.QImage.fromData(jpg)
+#                         if not img.isNull():
+#                             self.frame_received.emit(img)
+#                             # time.sleep(0.01)
+
+#             except Exception as e:
+#                 print("Video reconnect:", e)
+#                 time.sleep(2)
 class VideoThread(QtCore.QThread):
     frame_received = QtCore.pyqtSignal(QtGui.QImage)
 
     def run(self):
+        proc = subprocess.Popen(
+            FFMPEG_CMD, stdout=subprocess.PIPE
+        )
+        w, h = 1280, 720
+        frame_size = w * h * 3
+
         while True:
-            try:
-                r = requests.get("http://raspberrypi:8000/stream.mjpg", stream=True, timeout=5)
-                bytes_data = b""
+            raw = proc.stdout.read(frame_size)
+            if len(raw) < frame_size:
+                break
 
-                for chunk in r.iter_content(chunk_size=16384):
-                    bytes_data += chunk
-                    a = bytes_data.find(b'\xff\xd8')
-                    b = bytes_data.find(b'\xff\xd9')
-                    if a != -1 and b != -1:
-                        jpg = bytes_data[a:b+2]
-                        bytes_data = bytes_data[b+2:]
-                        img = QtGui.QImage.fromData(jpg)
-                        if not img.isNull():
-                            self.frame_received.emit(img)
-                            # time.sleep(0.01)
-
-            except Exception as e:
-                print("Video reconnect:", e)
-                time.sleep(2)
-
+            frame = np.frombuffer(raw, dtype=np.uint8).reshape((h, w, 3))
+            img = QtGui.QImage(frame.data, w, h, QtGui.QImage.Format.Format_RGB888)
+            self.frame_received.emit(img)
 
 
 class Controller(QtWidgets.QMainWindow):
