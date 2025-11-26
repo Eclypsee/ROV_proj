@@ -1,12 +1,15 @@
 import pygame
 import time
 import socket
-from PySide6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6 import QtCore, QtGui, QtWidgets
+from PyQt6.QtCore import Qt, pyqtSignal, QThread
+
 import requests
 # button 2 is x and button 1 is b
 
 class TelemetryThread(QtCore.QThread):
-    telemetry_received = QtCore.Signal(str)
+    telemetry_received = QtCore.pyqtSignal(str)
 
     def run(self):
         HOST = "raspberrypi"
@@ -34,7 +37,7 @@ class TelemetryThread(QtCore.QThread):
                 time.sleep(2)
 
 class VideoThread(QtCore.QThread):
-    frame_received = QtCore.Signal(QtGui.QImage)
+    frame_received = QtCore.pyqtSignal(QtGui.QImage)
 
     def run(self):
         while True:
@@ -134,7 +137,11 @@ class Controller(QtWidgets.QMainWindow):
     # update GUI with video
     def update_frame(self, img):
         pix = QtGui.QPixmap.fromImage(img)
-        pix = pix.scaled(1200, 800)
+        pix = pix.scaled(
+            1200, 800,
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation
+        )
         self.label_video.setPixmap(pix)
 
     # update battery label

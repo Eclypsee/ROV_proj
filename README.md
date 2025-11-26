@@ -11,6 +11,13 @@ sudo pip3 install Adafruit-GPIO
 sudo pip3 install Adafruit-ADS1x15
 
 • Make start_all.sh executable (chmod +x)  
+    sudo mv /home/pi/ROV_proj/rov_service.ctl /etc/systemd/system/rov_startup.service
+    sudo systemctl daemon-reload
+    sudo systemctl enable rov_startup.service
+    sudo systemctl start rov_startup.service
+    systemctl status rov_startup.service
+
+
 
 • Enable VNC and SSH in raspi-config.
     • name is typically pi@raspberrypi and pass is root
