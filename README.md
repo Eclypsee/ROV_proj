@@ -12,4 +12,6 @@ sudo pip3 install Adafruit-ADS1x15
 
 • Make camserver, controlserver, telemetryserver executable (chmod +x)  
 • Add all three to crontab so they start on boot
+• Enable VNC and SSH in raspi-config.
+    • name is typically pi@raspberrypi and pass is root
 • After finishing code changes, set filesystem to Read-Only in raspi-config (you can re-enable write mode later)

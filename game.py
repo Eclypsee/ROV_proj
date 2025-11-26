@@ -3,7 +3,7 @@ import time
 import socket
 from PySide6 import QtCore, QtGui, QtWidgets
 import requests
-
+# button 2 is x and button 1 is b
 
 class TelemetryThread(QtCore.QThread):
     telemetry_received = QtCore.Signal(str)
@@ -63,25 +63,46 @@ class VideoThread(QtCore.QThread):
 class Controller(QtWidgets.QMainWindow):
     def __init__(self):
         super().__init__()
-        
+
         # init joystick
         pygame.init()
         pygame.joystick.init()
         self.js = pygame.joystick.Joystick(0)
         self.js.init()
+        
+        self.prev_buttons = [0] * self.js.get_numbuttons()
+        self.tilt = 90   # start angle
 
         # UDP socket
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            self.target_addr = socket.gethostbyname("raspberrypi")
+            print("Resolved raspberrypi to:", self.target_addr)
+        except Exception as e:
+            print("Hostname resolve failed:", e)
+            self.target_addr = "192.168.1.50"   # optional fallback static IP
+
 
         # GUI
         self.label_video = QtWidgets.QLabel()
         self.label_telem = QtWidgets.QLabel("Telemetry: ---")
-        self.showMaximized()
+        font = self.label_telem.font()
+        font.setPointSize(14)
+        self.label_telem.setFont(font)
+        
+        self.label_cam = QtWidgets.QLabel("Cam: ---")
+        font2 = self.label_cam.font()
+        font2.setPointSize(14)
+        self.label_cam.setFont(font2)
+
+        self.showMaximized()    
+        
 
         
         layout = QtWidgets.QVBoxLayout()
         layout.addWidget(self.label_video)
         layout.addWidget(self.label_telem)
+        layout.addWidget(self.label_cam)
 
         widget = QtWidgets.QWidget()
         widget.setLayout(layout)
@@ -90,6 +111,11 @@ class Controller(QtWidgets.QMainWindow):
         self.label_video.setText("No video stream")
         self.label_telem.setText("No telemetry")
         
+        # start dns retry timer
+        self.dns_timer = QtCore.QTimer()
+        self.dns_timer.timeout.connect(self.refresh_dns)
+        self.dns_timer.start(5000)   # every 5 seconds
+
         # start video thread
         self.vthread = VideoThread()
         self.vthread.frame_received.connect(self.update_frame)
@@ -113,7 +139,17 @@ class Controller(QtWidgets.QMainWindow):
 
     # update battery label
     def update_telem(self, text):
-        self.label_telem.setText("Telemetry(4.2 is max Voltage): " + text)
+        self.label_telem.setText("Telemetry(Angle, V):   " + text)
+        
+    # refresh dns occasionally if it fails
+    def refresh_dns(self):
+        try:
+            new_addr = socket.gethostbyname("raspberrypi")
+            if new_addr != self.target_addr:
+                print(f"DNS updated: {self.target_addr} → {new_addr}")
+                self.target_addr = new_addr
+        except:
+            pass
 
     # send joystick commands
     def send_control(self):
@@ -123,19 +159,50 @@ class Controller(QtWidgets.QMainWindow):
         fy = -self.js.get_axis(1)
         z  = -self.js.get_axis(3)
 
-        a = int(max(min(fx * 40, 100), -100))
-        b = int(max(min(fy * 100,100), -100))
-        c = int(max(min(z  * 100,100), -100))
+        fx *= 0.4      # sensitivity scaling
+        fy *= 1.0
+        z  *= 1.0
 
-        L = max(min(a+b, 100), -100)
-        R = max(min(b-a, 100), -100)
-        V = c
-        tilt = 180
+        L = fy + fx # mixing
+        R = fy - fx
+        
+        L = max(min(L, 1.0), -1.0) #clamping
+        R = max(min(R, 1.0), -1.0)
+        
+        L = int(L * 100) #data conversion
+        R = int(R * 100)
+        V = int(z*100)
+        
+         # ---- BUTTON LOGIC ----
+        # button 2 = X → tilt += 5
+        # button 1 = B → tilt -= 5
 
-        packet = f"{L},{R},{V},{tilt},AutoOff"
+        # Check button 2 (X)
+        b2 = self.js.get_button(2)
+        if b2 == 1 and self.prev_buttons[2] == 0:   # button DOWN event
+            self.tilt += 10
 
+        # Check button 1 (B)
+        b1 = self.js.get_button(1)
+        if b1 == 1 and self.prev_buttons[1] == 0:   # button DOWN event
+            self.tilt -= 10
+
+        # Clamp servo angle
+        self.tilt = max(60, min(180, self.tilt))
+
+        # Save previous states
+        self.prev_buttons[2] = b2
+        self.prev_buttons[1] = b1
+
+        # Update GUI label
+        self.label_cam.setText(f"Camera tilt:    {self.tilt}")
+    
+        packet = f"{L},{R},{V},{self.tilt},AutoOff"
+
+        print(packet)
+        
         try:
-            self.sock.sendto(packet.encode(), ("raspberrypi", 21567))
+            self.sock.sendto(packet.encode(), (self.target_addr, 21567))
         except OSError as e:
             print("Control send failed:", e)
 
