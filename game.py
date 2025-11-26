@@ -140,7 +140,7 @@ class Controller(QtWidgets.QMainWindow):
         pix = pix.scaled(
             1200, 800,
             Qt.AspectRatioMode.KeepAspectRatio,
-            Qt.TransformationMode.SmoothTransformation
+            Qt.TransformationMode.FastTransformation
         )
         self.label_video.setPixmap(pix)
 
