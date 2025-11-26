@@ -10,11 +10,7 @@ Run on the Pi:
 sudo pip3 install Adafruit-GPIO
 sudo pip3 install Adafruit-ADS1x15
 
-• Make camserver, controlserver, telemetryserver executable (chmod +x)  
-• Add all three to crontab so they start on boot
-        @reboot sleep 5 && /usr/bin/python3 /home/pi/ROV_proj/RPiCamServer.py >> /home/pi/rovcamera.log 2>&1
-        @reboot sleep 5 && /usr/bin/python3 /home/pi/ROV_proj/ControlServer.py >> /home/pi/rovcontrol.log 2>&1
-        @reboot sleep 5 && /usr/bin/python3 /home/pi/ROV_proj/TelemetryServer.py >> /home/pi/rovtelem.log 2>&1
+• Make start_all.sh executable (chmod +x)  
 
 • Enable VNC and SSH in raspi-config.
     • name is typically pi@raspberrypi and pass is root
