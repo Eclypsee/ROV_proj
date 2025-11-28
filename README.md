@@ -17,6 +17,8 @@ sudo pip3 install Adafruit-ADS1x15
     sudo systemctl start rov_startup.service
     systemctl status rov_startup.service
 
+    detect i2c devices. should see 0x48
+    sudo i2cdetect -y 1
 
 
 • Enable VNC and SSH in raspi-config.

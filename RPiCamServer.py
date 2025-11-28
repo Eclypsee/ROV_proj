@@ -80,3 +80,12 @@ with picamera.PiCamera(resolution='800x450',framerate=15) as camera:
         server.serve_forever()
     finally:
         camera.stop_recording()
+# gst-launch-1.0 -v \
+#   v4l2src device=/dev/video0 ! \
+#   video/x-h264,width=1920,height=1080,framerate=30/1 ! \
+#   h264parse config-interval=1 ! \
+#   rtph264pay pt=96 mtu=1400 ! \
+#   udpsink host=169.254.123.1 port=8000
+
+# use netsh to set eth0 to ip 169.254.123.1 temporarily and set it back after
+# gst-launch-1.0 -v udpsrc port=8000 caps="application/x-rtp, media=video, encoding-name=H264, payload=96" ! rtph264depay ! h264parse ! d3d11h264dec ! d3d11videosink sync=false
